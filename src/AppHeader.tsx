@@ -14,6 +14,7 @@ import { LockState } from "@zmkfirmware/zmk-studio-ts-client/core";
 import { ConnectionContext } from "./rpc/ConnectionContext";
 import { ChevronDown, Undo2, Redo2, Save, Trash2 } from "lucide-react";
 import { Tooltip } from "./misc/Tooltip";
+import { ThemeToggle } from "./misc/ThemeToggle";
 import { GenericModal } from "./GenericModal";
 import { AppView, ViewTabs } from "./tester/ViewTabs";
 
@@ -131,6 +132,7 @@ export const AppHeader = ({
         </Popover>
       </MenuTrigger>
       <div className="flex justify-end gap-1 px-2">
+        <ThemeToggle />
         {onUndo && (
           <Tooltip label="Undo">
             <Button

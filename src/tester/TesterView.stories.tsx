@@ -4,6 +4,7 @@ import { useCallback, useReducer, useState } from "react";
 import { hid_usage_from_page_and_id } from "../hid-usages";
 import { HidUsageLabel } from "../keyboard/HidUsageLabel";
 import { KeyPosition } from "../keyboard/PhysicalLayout";
+import { ThemeToggle } from "../misc/ThemeToggle";
 import { KEY_EVENT_CODE_TO_HID_USAGES } from "./key-event-map";
 import {
   TesterState,
@@ -17,6 +18,18 @@ const meta = {
   title: "Tester/TesterView",
   component: TesterView,
   tags: ["autodocs"],
+  // In the app the theme toggle lives in the AppHeader; surface it here so
+  // both themes can be checked without a running device.
+  decorators: [
+    (Story) => (
+      <div>
+        <div className="flex justify-end px-2 pt-1">
+          <ThemeToggle />
+        </div>
+        <Story />
+      </div>
+    ),
+  ],
 } satisfies Meta<typeof TesterView>;
 
 export default meta;
