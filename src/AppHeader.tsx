@@ -15,6 +15,7 @@ import { ConnectionContext } from "./rpc/ConnectionContext";
 import { ChevronDown, Undo2, Redo2, Save, Trash2 } from "lucide-react";
 import { Tooltip } from "./misc/Tooltip";
 import { GenericModal } from "./GenericModal";
+import { AppView, ViewTabs } from "./tester/ViewTabs";
 
 export interface AppHeaderProps {
   connectedDeviceLabel?: string;
@@ -26,6 +27,8 @@ export interface AppHeaderProps {
   onDisconnect?: () => void | Promise<void>;
   canUndo?: boolean;
   canRedo?: boolean;
+  activeView?: AppView;
+  onViewChange?: (view: AppView) => void;
 }
 
 export const AppHeader = ({
@@ -38,6 +41,8 @@ export const AppHeader = ({
   onDiscard,
   onDisconnect,
   onResetSettings,
+  activeView,
+  onViewChange,
 }: AppHeaderProps) => {
   const [showSettingsReset, setShowSettingsReset] = useState(false);
 
@@ -69,6 +74,9 @@ export const AppHeader = ({
       <div className="flex px-3 items-center gap-1">
         <img src="/zmk.svg" alt="ZMK Logo" className="h-8 rounded" />
         <p>Studio</p>
+        {activeView && onViewChange && connectedDeviceLabel && (
+          <ViewTabs activeView={activeView} onViewChange={onViewChange} />
+        )}
       </div>
       <GenericModal ref={showSettingsRef} className="max-w-[50vw]">
         <h2 className="my-2 text-lg">Restore Stock Settings</h2>

@@ -20,6 +20,8 @@ import {
   list_devices as serial_list_devices,
 } from "./tauri/serial";
 import Keyboard from "./keyboard/Keyboard";
+import MatrixTester from "./tester/MatrixTester";
+import { AppView } from "./tester/ViewTabs";
 import { UndoRedoContext, useUndoRedo } from "./undoRedo";
 import { usePub, useSub } from "./usePubSub";
 import { LockState } from "@zmkfirmware/zmk-studio-ts-client/core";
@@ -162,6 +164,11 @@ async function connect(
 
 function App() {
   const [conn, setConn] = useState<ConnectionState>({ conn: null });
+  const [activeView, setActiveView] = useState<AppView>("keymap");
+  // Lazy-mount the tester on first activation (so its RPCs never fire for
+  // users who don't open it), then keep it mounted so its stats survive tab
+  // switches.
+  const [testerActivated, setTesterActivated] = useState(false);
   const [connectedDeviceName, setConnectedDeviceName] = useState<
     string | undefined
   >(undefined);
@@ -306,8 +313,26 @@ function App() {
               onDiscard={discard}
               onDisconnect={disconnect}
               onResetSettings={resetSettings}
+              activeView={activeView}
+              onViewChange={(view) => {
+                if (view === "tester") {
+                  setTesterActivated(true);
+                }
+                setActiveView(view);
+              }}
             />
-            <Keyboard />
+            <div
+              className={activeView === "keymap" ? "contents" : "hidden"}
+            >
+              <Keyboard />
+            </div>
+            {testerActivated && (
+              <div
+                className={activeView === "tester" ? "contents" : "hidden"}
+              >
+                <MatrixTester active={activeView === "tester"} />
+              </div>
+            )}
             <AppFooter
               onShowAbout={() => setShowAbout(true)}
               onShowLicenseNotice={() => setShowLicenseNotice(true)}

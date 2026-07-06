@@ -51,3 +51,13 @@ export const Large: Story = {
     children: [<span>C</span>],
   },
 };
+
+export const WithClassName: Story = {
+  args: {
+    className: "bg-accent text-base-100",
+    width: 1,
+    height: 1,
+    header: "Key Press",
+    children: [<span>D</span>],
+  },
+};

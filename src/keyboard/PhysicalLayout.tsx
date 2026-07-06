@@ -10,6 +10,8 @@ import { Key } from "./Key";
 export type KeyPosition = PropsWithChildren<{
   id: string;
   header?: string;
+  // Forwarded to Key via the {...p} spread; overrides its color classes.
+  className?: string;
   width: number;
   height: number;
   x: number;

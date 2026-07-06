@@ -3,6 +3,9 @@ import BehaviorShortNames from "./behavior-short-names.json";
 
 interface KeyProps {
   selected?: boolean;
+  // Overrides the selected/unselected color classes entirely (they conflict
+  // with appended bg-*/text-* classes in stylesheet-order-dependent ways).
+  className?: string;
   width: number;
   height: number;
   oneU: number;
@@ -36,6 +39,7 @@ const shortenHeader = (header: string | undefined) => {
 
 export const Key = ({
   selected = false,
+  className,
   width,
   height,
   oneU,
@@ -46,17 +50,22 @@ export const Key = ({
   const pixelWidth = width * oneU - 2;
   const pixelHeight = height * oneU - 2;
 
+  const colors =
+    className ??
+    (selected
+      ? "bg-primary text-primary-content"
+      : "bg-base-100 text-base-content");
+
   return (
     <button
-      className={`group rounded relative flex justify-center items-center cursor-pointer transition-all hover:shadow-xl hover:ring-1 hover:ring-gray-300 hover:scale-125 ${selected ? "bg-primary text-primary-content" : "bg-base-100 text-base-content"
-        }`}
+      className={`group rounded relative flex justify-center items-center cursor-pointer transition-all hover:shadow-xl hover:ring-1 hover:ring-gray-300 hover:scale-125 ${colors}`}
       style={{
         width: `${pixelWidth}px`,
         height: `${pixelHeight}px`,
       }}
       onClick={onClick}
     >
-      <div className={`absolute text-xs ${selected ? "text-primary-content" : "z1text-base-content"} opacity-80 top-1 text-nowrap left-1/2 font-light -translate-x-1/2 text-center`}>{shortenHeader(header)}</div>
+      <div className={`absolute text-xs ${className !== undefined ? "" : selected ? "text-primary-content" : "z1text-base-content"} opacity-80 top-1 text-nowrap left-1/2 font-light -translate-x-1/2 text-center`}>{shortenHeader(header)}</div>
       {children}
     </button>
   );
