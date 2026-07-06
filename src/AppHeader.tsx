@@ -16,6 +16,7 @@ import { ChevronDown, Undo2, Redo2, Save, Trash2 } from "lucide-react";
 import { Tooltip } from "./misc/Tooltip";
 import { ThemeToggle } from "./misc/ThemeToggle";
 import { GenericModal } from "./GenericModal";
+import { KeymapIoButtons } from "./keymap-io/KeymapIoButtons";
 import { AppView, ViewTabs } from "./tester/ViewTabs";
 
 export interface AppHeaderProps {
@@ -30,6 +31,7 @@ export interface AppHeaderProps {
   canRedo?: boolean;
   activeView?: AppView;
   onViewChange?: (view: AppView) => void;
+  onKeymapReload?: () => void;
 }
 
 export const AppHeader = ({
@@ -44,6 +46,7 @@ export const AppHeader = ({
   onResetSettings,
   activeView,
   onViewChange,
+  onKeymapReload,
 }: AppHeaderProps) => {
   const [showSettingsReset, setShowSettingsReset] = useState(false);
 
@@ -133,6 +136,10 @@ export const AppHeader = ({
       </MenuTrigger>
       <div className="flex justify-end gap-1 px-2">
         <ThemeToggle />
+        <KeymapIoButtons
+          deviceLabel={connectedDeviceLabel}
+          onKeymapChanged={onKeymapReload}
+        />
         {onUndo && (
           <Tooltip label="Undo">
             <Button

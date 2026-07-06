@@ -313,6 +313,7 @@ function App() {
               onDiscard={discard}
               onDisconnect={disconnect}
               onResetSettings={resetSettings}
+              onKeymapReload={() => setConn({ conn: conn.conn })}
               activeView={activeView}
               onViewChange={(view) => {
                 if (view === "tester") {
