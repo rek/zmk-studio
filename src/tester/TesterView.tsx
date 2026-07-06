@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { ReactNode, useMemo } from "react";
 import { Button } from "react-aria-components";
 
 import {
@@ -8,51 +8,102 @@ import {
 import { HeldKeysRow } from "./HeldKeysRow";
 import { StatsPanel } from "./StatsPanel";
 import { TesterState, untestedCount } from "./tester-state";
+import {
+  KEY_STATE_CLASSES,
+  KEY_STATE_DOTS,
+  KeyTestState,
+  MONO_DATA,
+  SILKSCREEN,
+} from "./ui";
 
 const CHATTER_THRESHOLD_CHOICES_MS = [20, 30, 40, 50];
 
-const KEY_STATE_CLASSES = {
-  held: "bg-primary text-primary-content",
-  chatter: "bg-red-500 text-white",
-  tested: "bg-accent text-base-100",
-  untestable: "bg-base-300 text-base-content opacity-40",
-  untested: undefined, // Key's default colors
-};
-
-const keyStateClass = (
+const keyTestState = (
   state: TesterState,
   untestable: Set<number>,
   position: number
-): string | undefined => {
+): KeyTestState => {
   const stats = state.byPosition[position];
   if (stats?.held) {
-    return KEY_STATE_CLASSES.held;
+    return "held";
   }
   if (stats?.chatterCount) {
-    return KEY_STATE_CLASSES.chatter;
+    return "chatter";
   }
   if (stats?.tested) {
-    return KEY_STATE_CLASSES.tested;
+    return "tested";
   }
   if (untestable.has(position)) {
-    return KEY_STATE_CLASSES.untestable;
+    return "untestable";
   }
-  return KEY_STATE_CLASSES.untested;
+  return "untested";
 };
 
-const LegendChip = ({
-  className,
-  label,
+// Perfboard-style dot grid behind the board; currentColor keeps it legible
+// in both light and dark themes.
+const MAT_STYLE = {
+  backgroundImage:
+    "radial-gradient(color-mix(in srgb, currentColor 14%, transparent) 1px, transparent 1.5px)",
+  backgroundSize: "14px 14px",
+  backgroundPosition: "7px 7px",
+};
+
+// One LED segment per physical key, in key-position order: a minimap of the
+// scan matrix. Untestable positions render as gaps — they aren't part of the
+// pass count.
+const LedBar = ({
+  count,
+  state,
+  untestable,
 }: {
-  className?: string;
-  label: string;
+  count: number;
+  state: TesterState;
+  untestable: Set<number>;
 }) => (
-  <span
-    className={`rounded px-2 py-1 ${className || "bg-base-100 text-base-content"}`}
-  >
-    {label}
-  </span>
+  <div className="flex max-w-[24rem] flex-wrap gap-[2px]">
+    {Array.from({ length: count }, (_, i) => (
+      <span
+        key={i}
+        className={`h-2 w-[4px] rounded-[1px] ${KEY_STATE_DOTS[keyTestState(state, untestable, i)]}`}
+      />
+    ))}
+  </div>
 );
+
+const LEGEND: { state: KeyTestState; label: string }[] = [
+  { state: "untested", label: "untested" },
+  { state: "held", label: "held" },
+  { state: "tested", label: "tested" },
+  { state: "chatter", label: "chatter" },
+  { state: "untestable", label: "no output" },
+];
+
+const Legend = () => (
+  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+    {LEGEND.map(({ state, label }) => (
+      <span key={state} className="flex items-center gap-1.5">
+        <span
+          className={`h-2 w-2 rounded-full ${
+            state === "untestable"
+              ? "border border-dashed border-base-content opacity-50"
+              : KEY_STATE_DOTS[state]
+          }`}
+        />
+        <span className={SILKSCREEN}>{label}</span>
+      </span>
+    ))}
+  </div>
+);
+
+const Control = ({ label, children }: { label: string; children: ReactNode }) => (
+  <label className="flex flex-col gap-1">
+    <span className={SILKSCREEN}>{label}</span>
+    {children}
+  </label>
+);
+
+const SELECT_CLASS =
+  "rounded-md border border-base-300 bg-base-100 px-2 py-1 text-[0.8rem] hover:border-base-content/50";
 
 export interface TesterViewProps {
   positions: KeyPosition[];
@@ -68,8 +119,9 @@ export interface TesterViewProps {
   onPositionClicked: (position: number) => void;
 }
 
-// Presentational tester view (no RPC): toolbar, the physical layout with
-// per-key test-state coloring, the live held-keys row, and per-key stats.
+// Presentational tester view (no RPC): instrument header (progress LED bar,
+// layer + chatter controls), the physical layout on a perfboard mat with
+// per-key test-state coloring, and the rollover / switch-readout cards.
 export const TesterView = ({
   positions,
   state,
@@ -87,20 +139,36 @@ export const TesterView = ({
     () =>
       positions.map((p, idx) => ({
         ...p,
-        className: keyStateClass(state, untestable, idx),
+        className: KEY_STATE_CLASSES[keyTestState(state, untestable, idx)],
       })),
     [positions, state, untestable]
   );
 
   const untested = untestedCount(state, testable);
+  const done = untested === 0 && testable.size > 0;
 
   return (
-    <div className="p-2 flex flex-col gap-2 max-w-full min-w-0 overflow-hidden">
-      <div className="flex items-center gap-3 flex-wrap px-2">
-        <label className="flex items-center gap-1">
-          <span className="opacity-70">Layer:</span>
+    <div className="flex h-full min-h-0 min-w-0 max-w-full flex-col gap-3 overflow-hidden p-3">
+      <div className="flex flex-wrap items-end gap-x-6 gap-y-2 px-1">
+        <div className="flex flex-col gap-1">
+          <span className={SILKSCREEN}>Switch test</span>
+          <div className="flex items-center gap-2.5">
+            <span
+              className={`${MONO_DATA} ${done ? "text-accent" : ""}`}
+            >
+              {testable.size - untested}/{testable.size}
+            </span>
+            <LedBar
+              count={positions.length}
+              state={state}
+              untestable={untestable}
+            />
+            {done && <span className={`${SILKSCREEN} text-accent opacity-100`}>all switches pass</span>}
+          </div>
+        </div>
+        <Control label="Layer">
           <select
-            className="rounded bg-base-200 hover:bg-base-300 px-2 py-1"
+            className={SELECT_CLASS}
             value={selectedLayerIndex}
             onChange={(e) => onLayerChange(parseInt(e.target.value, 10))}
           >
@@ -110,11 +178,10 @@ export const TesterView = ({
               </option>
             ))}
           </select>
-        </label>
-        <label className="flex items-center gap-1">
-          <span className="opacity-70">Chatter threshold:</span>
+        </Control>
+        <Control label="Chatter under">
           <select
-            className="rounded bg-base-200 hover:bg-base-300 px-2 py-1"
+            className={SELECT_CLASS}
             value={chatterThresholdMs}
             onChange={(e) =>
               onChatterThresholdChange(parseInt(e.target.value, 10))
@@ -126,32 +193,22 @@ export const TesterView = ({
               </option>
             ))}
           </select>
-        </label>
+        </Control>
         <Button
-          className="rounded bg-base-200 hover:bg-base-300 px-3 py-1"
+          className="rounded-md border border-base-300 px-3 py-1 text-[0.8rem] hover:bg-base-300"
           onPress={onReset}
         >
-          Reset
+          Reset test
         </Button>
-        <span
-          className={`rounded px-2 py-1 ${untested === 0 ? "bg-accent text-base-100" : "bg-base-200"}`}
-        >
-          {untested === 0
-            ? `All ${testable.size} keys tested`
-            : `${untested} of ${testable.size} keys untested`}
-        </span>
-        <div className="flex items-center gap-1 ml-auto">
-          <LegendChip label="untested" />
-          <LegendChip className={KEY_STATE_CLASSES.held} label="held" />
-          <LegendChip className={KEY_STATE_CLASSES.tested} label="tested" />
-          <LegendChip className={KEY_STATE_CLASSES.chatter} label="chatter" />
-          <LegendChip
-            className={KEY_STATE_CLASSES.untestable}
-            label="not detectable"
-          />
+        <div className="ml-auto self-center">
+          <Legend />
         </div>
       </div>
-      <div className="grid items-center justify-center min-h-0 min-w-0 flex-1">
+
+      <div
+        className="relative grid min-h-[16rem] flex-1 items-center justify-center overflow-hidden rounded-xl border border-base-300 bg-base-200 text-base-content"
+        style={MAT_STYLE}
+      >
         <PhysicalLayoutComp
           positions={decoratedPositions}
           oneU={48}
@@ -160,13 +217,17 @@ export const TesterView = ({
           onPositionClicked={onPositionClicked}
         />
       </div>
-      <HeldKeysRow state={state} />
-      <StatsPanel state={state} />
-      <p className="opacity-50 px-2">
-        Detection uses host key events on the selected layer, so keys without
-        output (layer holds, Bluetooth, RGB, ...) can&apos;t be sensed, and the
-        browser may keep some system shortcuts for itself — the desktop app
-        captures nearly everything.
+
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+        <HeldKeysRow state={state} />
+        <StatsPanel state={state} />
+      </div>
+
+      <p className="px-1 text-[0.7rem] leading-relaxed opacity-50">
+        Detection listens to this computer&apos;s key events on the selected
+        layer. Switches that send nothing the host can hear — layer holds,
+        Bluetooth, lighting — stay dashed, and the browser keeps a few
+        shortcuts for itself. The desktop app captures almost everything.
       </p>
     </div>
   );

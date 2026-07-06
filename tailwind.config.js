@@ -30,6 +30,15 @@ export default {
 
     fontFamily: {
       keycap: ["Inter", "system-ui"],
+      // Replacing the core fontFamily scale (for `keycap`) dropped Tailwind's
+      // default `font-mono`; the tester's instrument readouts need it back.
+      mono: [
+        "ui-monospace",
+        "SFMono-Regular",
+        "Menlo",
+        "Consolas",
+        "monospace",
+      ],
     },
   },
   plugins: [contQueries, trac({ prefix: "rac" })],

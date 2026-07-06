@@ -1,5 +1,17 @@
 import { produce } from "immer";
 
+// One switch closure: down edge, up edge (absent while still held), and
+// whether the closure re-fired within the chatter threshold of the previous
+// release. Feeds the pulse-trace visualization in the switch readout.
+export interface KeyPulse {
+  downAt: number;
+  upAt?: number;
+  chatter: boolean;
+}
+
+// Bounded per-position history; old pulses scroll off the left of the trace.
+export const MAX_PULSES = 14;
+
 export interface KeyPositionStats {
   pressCount: number;
   held: boolean;
@@ -11,6 +23,7 @@ export interface KeyPositionStats {
   maxHoldMs?: number;
   chatterCount: number;
   lastChatterGapMs?: number;
+  pulses: KeyPulse[];
 }
 
 export interface HeldKey {
@@ -61,6 +74,7 @@ const emptyStats = (): KeyPositionStats => ({
   held: false,
   tested: false,
   chatterCount: 0,
+  pulses: [],
 });
 
 export const testerReducer = produce(
@@ -79,14 +93,20 @@ export const testerReducer = produce(
           stats.pressCount += 1;
           stats.held = true;
           stats.tested = true;
-          if (
-            stats.lastReleaseAt !== undefined &&
-            t - stats.lastReleaseAt < chatterThresholdMs
-          ) {
+          const gap =
+            stats.lastReleaseAt !== undefined
+              ? t - stats.lastReleaseAt
+              : undefined;
+          const chatter = gap !== undefined && gap < chatterThresholdMs;
+          if (chatter) {
             stats.chatterCount += 1;
-            stats.lastChatterGapMs = t - stats.lastReleaseAt;
+            stats.lastChatterGapMs = gap;
           }
           stats.lastPressAt = t;
+          stats.pulses.push({ downAt: t, chatter });
+          if (stats.pulses.length > MAX_PULSES) {
+            stats.pulses.shift();
+          }
         }
 
         state.heldByCode[code] = { code, usages, positions, pressedAt: t };
@@ -114,6 +134,12 @@ export const testerReducer = produce(
           stats.lastHoldMs = holdMs;
           stats.minHoldMs = Math.min(stats.minHoldMs ?? holdMs, holdMs);
           stats.maxHoldMs = Math.max(stats.maxHoldMs ?? holdMs, holdMs);
+          for (let i = stats.pulses.length - 1; i >= 0; i--) {
+            if (stats.pulses[i].upAt === undefined) {
+              stats.pulses[i].upAt = action.t;
+              break;
+            }
+          }
         }
         delete state.heldByCode[action.code];
         break;
@@ -131,6 +157,9 @@ export const testerReducer = produce(
             const stats = state.byPosition[pos];
             if (stats) {
               stats.held = false;
+              // Drop still-open pulses: with no keyup their duration is
+              // unknowable, and a synthetic release would draw as a real one.
+              stats.pulses = stats.pulses.filter((p) => p.upAt !== undefined);
             }
           }
         }
