@@ -1,0 +1,46 @@
+name: Deploy to GitHub Pages
+
+# Fork-only workflow: publishes the web app (and Storybook under /storybook)
+# so branches can be tried in a browser without a local checkout. Last pushed
+# branch wins the single Pages deployment.
+on:
+  push:
+    branches: [main, feat/matrix-tester]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: "npm"
+      - run: npm ci
+      # Project pages are served from /<repo>/, so Vite needs a matching base.
+      - run: npm run build -- --base=/${{ github.event.repository.name }}/
+      - run: npm run build-storybook -- -o dist/storybook
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
