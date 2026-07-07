@@ -13,14 +13,15 @@ import { useBehaviors, useLayouts } from "../keyboard/Keyboard";
 import { HidUsageLabel } from "../keyboard/HidUsageLabel";
 import { KeyPosition } from "../keyboard/PhysicalLayout";
 import { ConnectionContext } from "../rpc/ConnectionContext";
+import { call_rpc } from "../rpc/logging";
 import { useConnectedDeviceData } from "../rpc/useConnectedDeviceData";
 import { useLocalStorageState } from "../misc/useLocalStorageState";
 
+import { HOST_DETECTABLE_USAGES } from "./key-event-map";
 import {
-  HOST_DETECTABLE_USAGES,
-  KEY_EVENT_CODE_TO_HID_USAGES,
-} from "./key-event-map";
-import { buildUsageToPositions } from "./usage-to-positions";
+  buildUsageToPositions,
+  matchCodeToPositions,
+} from "./usage-to-positions";
 import { initialTesterState, testerReducer } from "./tester-state";
 import { useKeyEventCapture } from "./useKeyEventCapture";
 import { TesterView } from "./TesterView";
@@ -32,13 +33,50 @@ import { TesterView } from "./TesterView";
 export default function MatrixTester({ active }: { active: boolean }) {
   const conn = useContext(ConnectionContext);
 
-  const [layouts, , selectedPhysicalLayoutIndex] = useLayouts();
+  const [
+    layouts,
+    setLayouts,
+    selectedPhysicalLayoutIndex,
+    setSelectedPhysicalLayoutIndex,
+  ] = useLayouts();
   const behaviors = useBehaviors();
-  const [keymap] = useConnectedDeviceData<Keymap>(
+  const [keymap, setKeymap] = useConnectedDeviceData<Keymap>(
     { keymap: { getKeymap: true } },
     (keymap) => keymap?.keymap?.getKeymap,
     true
   );
+
+  // Re-sync on every tab activation: bindings and the active physical layout
+  // can change in the keymap editor while this tab is hidden, and a stale
+  // usage-to-position index lights the wrong keys.
+  useEffect(() => {
+    const c = conn.conn;
+    if (!active || !c) {
+      return;
+    }
+    let ignore = false;
+    (async () => {
+      const keymapResp = await call_rpc(c, { keymap: { getKeymap: true } });
+      const layoutsResp = await call_rpc(c, {
+        keymap: { getPhysicalLayouts: true },
+      });
+      if (ignore) {
+        return;
+      }
+      const freshKeymap = keymapResp?.keymap?.getKeymap;
+      if (freshKeymap) {
+        setKeymap(freshKeymap);
+      }
+      const freshLayouts = layoutsResp?.keymap?.getPhysicalLayouts;
+      if (freshLayouts) {
+        setLayouts(freshLayouts.layouts);
+        setSelectedPhysicalLayoutIndex(freshLayouts.activeLayoutIndex || 0);
+      }
+    })();
+    return () => {
+      ignore = true;
+    };
+  }, [active, conn, setKeymap, setLayouts, setSelectedPhysicalLayoutIndex]);
 
   const [selectedLayerIndex, setSelectedLayerIndex] = useState(0);
   const [chatterThresholdMs, setChatterThresholdMs] =
@@ -52,6 +90,13 @@ export default function MatrixTester({ active }: { active: boolean }) {
     setSelectedLayerIndex(0);
     dispatch({ type: "reset" });
   }, [conn]);
+
+  // A refetched keymap can have fewer layers than the current selection.
+  useEffect(() => {
+    if (keymap && selectedLayerIndex >= keymap.layers.length) {
+      setSelectedLayerIndex(Math.max(0, keymap.layers.length - 1));
+    }
+  }, [keymap, selectedLayerIndex]);
 
   const layout = layouts?.[selectedPhysicalLayoutIndex];
   const layer = keymap?.layers[selectedLayerIndex];
@@ -93,18 +138,15 @@ export default function MatrixTester({ active }: { active: boolean }) {
 
   const onPress = useCallback(
     (code: string, t: number) => {
-      const usages = KEY_EVENT_CODE_TO_HID_USAGES[code] || [];
-      const matched = new Set<number>();
-      for (const usage of usages) {
-        for (const pos of index?.byUsage.get(usage) || []) {
-          matched.add(pos);
-        }
-      }
+      const { usages, positions } = matchCodeToPositions(
+        code,
+        index?.byUsage ?? new Map()
+      );
       dispatch({
         type: "press",
         code,
         usages,
-        positions: [...matched],
+        positions,
         t,
         chatterThresholdMs,
       });

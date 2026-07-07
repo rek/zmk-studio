@@ -2,11 +2,15 @@ import { produce } from "immer";
 
 // One switch closure: down edge, up edge (absent while still held), and
 // whether the closure re-fired within the chatter threshold of the previous
-// release. Feeds the pulse-trace visualization in the switch readout.
+// release. Feeds the pulse-trace visualization in the switch readout. `code`
+// ties the pulse back to the browser key that opened it, so a position held
+// through two codes at once (mod-tap: tap and hold usages map to the same
+// key) closes the right pulse on release.
 export interface KeyPulse {
   downAt: number;
   upAt?: number;
   chatter: boolean;
+  code?: string;
 }
 
 // Bounded per-position history; old pulses scroll off the left of the trace.
@@ -103,7 +107,7 @@ export const testerReducer = produce(
             stats.lastChatterGapMs = gap;
           }
           stats.lastPressAt = t;
-          stats.pulses.push({ downAt: t, chatter });
+          stats.pulses.push({ downAt: t, chatter, code });
           if (stats.pulses.length > MAX_PULSES) {
             stats.pulses.shift();
           }
@@ -125,23 +129,45 @@ export const testerReducer = produce(
         if (!held) {
           return;
         }
+        delete state.heldByCode[action.code];
+
+        // A position can be held through more than one code at once (mod-tap
+        // keys map both usages to the same key); it stays held until the
+        // last of them releases.
+        const stillHeld = new Set<number>();
+        for (const other of Object.values(state.heldByCode)) {
+          for (const pos of other.positions) {
+            stillHeld.add(pos);
+          }
+        }
 
         const holdMs = action.t - held.pressedAt;
         for (const pos of held.positions) {
           const stats = (state.byPosition[pos] ??= emptyStats());
-          stats.held = false;
+          stats.held = stillHeld.has(pos);
           stats.lastReleaseAt = action.t;
           stats.lastHoldMs = holdMs;
           stats.minHoldMs = Math.min(stats.minHoldMs ?? holdMs, holdMs);
           stats.maxHoldMs = Math.max(stats.maxHoldMs ?? holdMs, holdMs);
+          // Close this code's own pulse, or the newest open one for pulses
+          // recorded without a code.
+          let openIndex = -1;
           for (let i = stats.pulses.length - 1; i >= 0; i--) {
-            if (stats.pulses[i].upAt === undefined) {
-              stats.pulses[i].upAt = action.t;
+            if (stats.pulses[i].upAt !== undefined) {
+              continue;
+            }
+            if (stats.pulses[i].code === action.code) {
+              openIndex = i;
               break;
             }
+            if (openIndex === -1) {
+              openIndex = i;
+            }
+          }
+          if (openIndex !== -1) {
+            stats.pulses[openIndex].upAt = action.t;
           }
         }
-        delete state.heldByCode[action.code];
         break;
       }
       case "focus": {

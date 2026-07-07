@@ -313,7 +313,13 @@ function App() {
               onDiscard={discard}
               onDisconnect={disconnect}
               onResetSettings={resetSettings}
-              onKeymapReload={() => setConn({ conn: conn.conn })}
+              onKeymapReload={() => {
+                // Same refresh recipe as discard/resetSettings: drop the
+                // undo/redo history (its inverses predate the import) and
+                // poke the connection identity so consumers refetch.
+                reset();
+                setConn({ conn: conn.conn });
+              }}
               activeView={activeView}
               onViewChange={(view) => {
                 if (view === "tester") {

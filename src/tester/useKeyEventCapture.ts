@@ -49,10 +49,13 @@ export function useKeyEventCapture(
     };
 
     const onKeyUp = (e: KeyboardEvent) => {
-      if (modalIsOpen() || isTextEntryTarget(e.target)) {
-        return;
+      // Always record the release: the matching press may still be held from
+      // before a dialog opened or focus moved into a text field, and dropping
+      // it would freeze the key as held (the reducer ignores unknown codes,
+      // so this can never create a phantom hit).
+      if (!modalIsOpen() && !isTextEntryTarget(e.target)) {
+        e.preventDefault();
       }
-      e.preventDefault();
       handlersRef.current.onRelease(e.code, e.timeStamp);
     };
 

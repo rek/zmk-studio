@@ -8,6 +8,7 @@ import {
   hid_usage_from_page_and_id,
   hid_usage_page_and_id_from_usage,
 } from "../hid-usages";
+import { KEY_EVENT_CODE_TO_HID_USAGES } from "./key-event-map";
 
 export type BehaviorMap = Record<number, GetBehaviorDetailsResponse>;
 
@@ -71,4 +72,21 @@ export function buildUsageToPositions(
   });
 
   return { byUsage, testable, untestable };
+}
+
+// Resolve a browser KeyboardEvent.code to the HID usages it can emit and the
+// key positions they map to — the shared press-event half of the pipeline,
+// used by both the connected tester and the Storybook harness.
+export function matchCodeToPositions(
+  code: string,
+  byUsage: Map<number, number[]>
+): { usages: number[]; positions: number[] } {
+  const usages = KEY_EVENT_CODE_TO_HID_USAGES[code] || [];
+  const matched = new Set<number>();
+  for (const usage of usages) {
+    for (const pos of byUsage.get(usage) || []) {
+      matched.add(pos);
+    }
+  }
+  return { usages, positions: [...matched] };
 }

@@ -5,7 +5,7 @@ import { hid_usage_from_page_and_id } from "../hid-usages";
 import { HidUsageLabel } from "../keyboard/HidUsageLabel";
 import { KeyPosition } from "../keyboard/PhysicalLayout";
 import { ThemeToggle } from "../misc/ThemeToggle";
-import { KEY_EVENT_CODE_TO_HID_USAGES } from "./key-event-map";
+import { matchCodeToPositions } from "./usage-to-positions";
 import {
   TesterState,
   initialTesterState,
@@ -254,18 +254,12 @@ const InteractiveTester = () => {
 
   const onPress = useCallback(
     (code: string, t: number) => {
-      const usages = KEY_EVENT_CODE_TO_HID_USAGES[code] || [];
-      const matched = new Set<number>();
-      for (const usage of usages) {
-        for (const pos of byUsage.get(usage) || []) {
-          matched.add(pos);
-        }
-      }
+      const { usages, positions } = matchCodeToPositions(code, byUsage);
       dispatch({
         type: "press",
         code,
         usages,
-        positions: [...matched],
+        positions,
         t,
         chatterThresholdMs,
       });

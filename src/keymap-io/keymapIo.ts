@@ -90,6 +90,17 @@ export const parseKeymapExportDoc = (text: string): KeymapExportDoc => {
   if (!Array.isArray(d.layers) || d.layers.length === 0) {
     throw new Error("This export contains no layers.");
   }
+  if (
+    typeof d.layout?.name !== "string" ||
+    typeof d.layout?.keyCount !== "number"
+  ) {
+    // Tolerate a trimmed/hand-edited file: the layout block is informational
+    // (confirm-dialog copy and mismatch warnings), not required to apply.
+    d.layout = {
+      name: "unknown",
+      keyCount: d.layers[0]?.bindings?.length ?? 0,
+    };
+  }
   for (const layer of d.layers) {
     if (
       typeof layer?.name !== "string" ||

@@ -51,21 +51,10 @@ const MAT_STYLE = {
 // One LED segment per physical key, in key-position order: a minimap of the
 // scan matrix. Untestable positions render as gaps — they aren't part of the
 // pass count.
-const LedBar = ({
-  count,
-  state,
-  untestable,
-}: {
-  count: number;
-  state: TesterState;
-  untestable: Set<number>;
-}) => (
+const LedBar = ({ states }: { states: KeyTestState[] }) => (
   <div className="flex max-w-[24rem] flex-wrap gap-[2px]">
-    {Array.from({ length: count }, (_, i) => (
-      <span
-        key={i}
-        className={`h-2 w-[4px] rounded-[1px] ${KEY_STATE_DOTS[keyTestState(state, untestable, i)]}`}
-      />
+    {states.map((s, i) => (
+      <span key={i} className={`h-2 w-[4px] rounded-[1px] ${KEY_STATE_DOTS[s]}`} />
     ))}
   </div>
 );
@@ -135,13 +124,18 @@ export const TesterView = ({
   onReset,
   onPositionClicked,
 }: TesterViewProps) => {
+  const keyStates = useMemo(
+    () => positions.map((_, idx) => keyTestState(state, untestable, idx)),
+    [positions, state, untestable]
+  );
+
   const decoratedPositions = useMemo(
     () =>
       positions.map((p, idx) => ({
         ...p,
-        className: KEY_STATE_CLASSES[keyTestState(state, untestable, idx)],
+        className: KEY_STATE_CLASSES[keyStates[idx]],
       })),
-    [positions, state, untestable]
+    [positions, keyStates]
   );
 
   const untested = untestedCount(state, testable);
@@ -158,11 +152,7 @@ export const TesterView = ({
             >
               {testable.size - untested}/{testable.size}
             </span>
-            <LedBar
-              count={positions.length}
-              state={state}
-              untestable={untestable}
-            />
+            <LedBar states={keyStates} />
             {done && <span className={`${SILKSCREEN} text-accent opacity-100`}>all switches pass</span>}
           </div>
         </div>
