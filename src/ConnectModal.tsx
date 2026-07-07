@@ -247,7 +247,7 @@ function noTransportsOptionsPrompt() {
           </li>
           <li>
             Download our{" "}
-            <ExternalLink href="/download">
+            <ExternalLink href={`${import.meta.env.BASE_URL}download`}>
               cross platform application
             </ExternalLink>
             .
