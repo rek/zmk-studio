@@ -22,8 +22,5 @@ TS + Vite, optional Tauri desktop shell). Full docs live in `docs/`:
 - Fork features are self-contained per top-level `src/` dir (see
   `docs/FORK-NOTES.md`) so each can be upstreamed independently — don't
   spread a new feature across files it doesn't need.
-
-## Branch state
-
-`feat/matrix-tester` is active; diverged from `main` by 28 files /
-+2397 −10.
+- Work happens directly on `main`; this fork doesn't PR feature branches
+  back to itself.

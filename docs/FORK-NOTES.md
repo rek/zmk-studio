@@ -62,5 +62,5 @@ indication in flight).
 
 ## Branch state
 
-`feat/matrix-tester` is the active branch; diverged from `main` by 28
-files / +2397 −10. `main` tracks upstream more closely.
+Work happens directly on `main`; feature branches (e.g.
+`feat/matrix-tester`) are merged in rather than PR'd back.

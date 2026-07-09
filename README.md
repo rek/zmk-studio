@@ -2,11 +2,17 @@
 
 Initial work on the ZMK Studio UI.
 
-## Fork additions
+## Why a fork
 
-This fork ([rek/zmk-studio](https://github.com/rek/zmk-studio)) carries a few
-features on top of upstream, each kept self-contained for possible upstream
-PRs:
+This is a personal fork ([rek/zmk-studio](https://github.com/rek/zmk-studio))
+of [`zmkfirmware/zmk-studio`](https://github.com/zmkfirmware/zmk-studio) for
+features I wanted that upstream doesn't have — mainly a way to verify every
+switch on a freshly built board. It isn't intended to be PR'd back upstream
+as a whole; work happens directly on `main` here. Each feature is still kept
+self-contained (see [`docs/FORK-NOTES.md`](docs/FORK-NOTES.md)) so any of
+them *could* be upstreamed individually later if useful.
+
+## Fork additions
 
 - **Key tester** (`src/tester/`) — a switch-tester tab for verifying every
   switch on a freshly built board: per-key tested/held state, chatter
