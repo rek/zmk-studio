@@ -24,3 +24,12 @@ PRs:
   users. Imports are staged on the device like manual edits: Save persists
   them, Discard rolls them back. Behaviors are matched by display name so a
   keymap can move between keyboards running different firmware builds.
+
+See [`docs/FORK-NOTES.md`](docs/FORK-NOTES.md) for how the fork is
+organized (per-feature `src/` layout, RPC/proto model) and
+[`docs/plans/`](docs/plans/) for in-flight feature scoping docs.
+
+## Running locally
+
+See [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) for the `generate-data`
+GitHub rate-limit workaround and Linux BLE/USB connection setup.
