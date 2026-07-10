@@ -8,7 +8,7 @@ TS + Vite, optional Tauri desktop shell). Full docs live in `docs/`:
   feature, or wiring a new firmware→UI notification.
 - [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) — commands, the
   `generate-data` GitHub rate-limit gotcha, Linux BLE/USB connection
-  setup.
+  setup, and hardware troubleshooting (deep-sleep wake failures, etc.).
 - [`docs/plans/`](docs/plans/) — scoping docs for in-flight/queued
   features. **Check here before starting new work** — a plan states
   explicitly whether work has started, so you don't redo research or

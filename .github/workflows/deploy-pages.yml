@@ -1,11 +1,10 @@
 name: Deploy to GitHub Pages
 
-# Fork-only workflow: publishes the web app (and Storybook under /storybook)
-# so branches can be tried in a browser without a local checkout. Last pushed
-# branch wins the single Pages deployment.
+# Fork-only workflow: publishes the web app (and Storybook under
+# /storybook) so it can be tried in a browser without a local checkout.
 on:
   push:
-    branches: [main, feat/matrix-tester]
+    branches: [main]
   workflow_dispatch:
 
 permissions:

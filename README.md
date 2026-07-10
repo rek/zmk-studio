@@ -38,4 +38,5 @@ organized (per-feature `src/` layout, RPC/proto model) and
 ## Running locally
 
 See [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) for the `generate-data`
-GitHub rate-limit workaround and Linux BLE/USB connection setup.
+GitHub rate-limit workaround, Linux BLE/USB connection setup, and
+troubleshooting (including a board stuck asleep after deep sleep).
